@@ -368,20 +368,23 @@ class AudioPlayerManager: NSObject, ObservableObject, AVPlayerItemMetadataOutput
                       from track: AVPlayerItemTrack?) {
         // Basic metadata processing
         guard let group = groups.first, let metadata = group.items.first else { return }
-
-        Task { [weak self] in
-            guard let self = self else { return }
-            if let title = try? await metadata.load(.stringValue) {
-                // Parse "Artist - Title" format
-                let components = title.components(separatedBy: " - ")
-                let artist = components.count > 1 ? components[0].trimmingCharacters(in: .whitespacesAndNewlines) : ""
-                let trackTitle = components.count > 1 ? components[1].trimmingCharacters(in: .whitespacesAndNewlines) : title.trimmingCharacters(in: .whitespacesAndNewlines)
-
-                await MainActor.run {
-                    self.currentTrackInfo = TrackInfo(title: trackTitle, artist: artist)
-                    self.setupNowPlaying()
-                }
+        
+        if let title = metadata.stringValue {
+            // Parse "Artist - Title" format
+            let components = title.components(separatedBy: " - ")
+            var trackInfo = TrackInfo()
+            
+            if components.count > 1 {
+                trackInfo.artist = components[0].trimmingCharacters(in: .whitespacesAndNewlines)
+                trackInfo.title = components[1].trimmingCharacters(in: .whitespacesAndNewlines)
+            } else {
+                trackInfo.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
             }
+            
+            self.currentTrackInfo = trackInfo
+            
+            // Update Now Playing info with new track data
+            setupNowPlaying()
         }
     }
     
