@@ -1,10 +1,3 @@
-//
-//  ContentView.swift
-//  Radio-T
-//
-//  Created by Alex Nikon on 16.03.2025.
-//
-
 import SwiftUI
 
 struct ErrorBanner: View {
@@ -172,7 +165,7 @@ struct ContentView: View {
             .buttonStyle(.plain)
             .disabled(player.isLoading)
             .overlay {
-                if player.isLoading {
+                if player.isLoading && !player.isPlaying {
                     ProgressView()
                         .scaleEffect(1.5)
                 }
