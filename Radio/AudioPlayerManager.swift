@@ -384,6 +384,7 @@ class AudioPlayerManager: NSObject, ObservableObject, AVPlayerItemMetadataOutput
             self.currentTrackInfo = trackInfo
             
             // Update Now Playing info with new track data
+
             self.setupNowPlaying()
         }
     }

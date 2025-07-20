@@ -1,3 +1,10 @@
+//
+//  ContentView.swift
+//  Radio-T
+//
+//  Created by Alex Nikon on 16.03.2025.
+//
+
 import SwiftUI
 
 struct ErrorBanner: View {
