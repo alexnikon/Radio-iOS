@@ -23,14 +23,14 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     func scheduleWeeklyNotification() {
         let content = UNMutableNotificationContent()
         content.title = "Radio-T"
-        content.body = "Прямой эфир начнется через 30 минут!"
+        content.body = "Трансляция начнется через 15 минут"
         content.sound = .default
         
-        // Создаем компоненты даты для субботы 23:00 МСК
+        // Создаем компоненты даты для субботы 22:45 МСК
         var dateComponents = DateComponents()
         dateComponents.weekday = 7 // Суббота (1 = воскресенье, 7 = суббота)
-        dateComponents.hour = 23
-        dateComponents.minute = 0
+        dateComponents.hour = 22
+        dateComponents.minute = 45
         dateComponents.timeZone = TimeZone(identifier: "Europe/Moscow")
         
         let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)

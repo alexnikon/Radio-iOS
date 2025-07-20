@@ -44,9 +44,9 @@ struct ContentView: View {
                 }
             }
             .pickerStyle(.segmented)
-            .padding(.horizontal)
-            .padding(.top, 40)
-            .tint(.blue)
+            .padding(.top, 24)
+            .padding(.horizontal, 16)
+            .frame(minHeight: 44)
             .onChange(of: player.currentStream) { oldValue, newValue in
                 // When stream selection changes, call switchStream
                 // This will handle playback correctly
@@ -165,7 +165,7 @@ struct ContentView: View {
             .buttonStyle(.plain)
             .disabled(player.isLoading)
             .overlay {
-                if player.isLoading && !player.isPlaying {
+                if player.isLoading {
                     ProgressView()
                         .scaleEffect(1.5)
                 }
