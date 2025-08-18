@@ -21,24 +21,48 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     }
     
     func scheduleWeeklyNotification() {
-        let content = UNMutableNotificationContent()
-        content.title = "Radio-T"
-        content.body = "Трансляция начнется через 15 минут"
-        content.sound = .default
+        // Первое уведомление за 15 минут до начала
+        let content15min = UNMutableNotificationContent()
+        content15min.title = "Radio-T"
+        content15min.body = "Трансляция начнется через 15 минут"
+        content15min.sound = .default
         
-        // Создаем компоненты даты для субботы 22:45 МСК
-        var dateComponents = DateComponents()
-        dateComponents.weekday = 7 // Суббота (1 = воскресенье, 7 = суббота)
-        dateComponents.hour = 22
-        dateComponents.minute = 45
-        dateComponents.timeZone = TimeZone(identifier: "Europe/Moscow")
+        // Создаем компоненты даты для субботы 22:45 МСК (за 15 минут)
+        var dateComponents15min = DateComponents()
+        dateComponents15min.weekday = 7 // Суббота (1 = воскресенье, 7 = суббота)
+        dateComponents15min.hour = 22
+        dateComponents15min.minute = 45
+        dateComponents15min.timeZone = TimeZone(identifier: "Europe/Moscow")
         
-        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
-        let request = UNNotificationRequest(identifier: "radio-t-live", content: content, trigger: trigger)
+        let trigger15min = UNCalendarNotificationTrigger(dateMatching: dateComponents15min, repeats: true)
+        let request15min = UNNotificationRequest(identifier: "radio-t-live-15min", content: content15min, trigger: trigger15min)
         
-        UNUserNotificationCenter.current().add(request) { error in
+        // Второе уведомление точно в момент начала эфира
+        let contentStart = UNMutableNotificationContent()
+        contentStart.title = "Radio-T"
+        contentStart.body = "Трансляция началась"
+        contentStart.sound = .default
+        
+        // Создаем компоненты даты для субботы 23:00 МСК
+        var dateComponentsStart = DateComponents()
+        dateComponentsStart.weekday = 7 // Суббота (1 = воскресенье, 7 = суббота)
+        dateComponentsStart.hour = 23
+        dateComponentsStart.minute = 0
+        dateComponentsStart.timeZone = TimeZone(identifier: "Europe/Moscow")
+        
+        let triggerStart = UNCalendarNotificationTrigger(dateMatching: dateComponentsStart, repeats: true)
+        let requestStart = UNNotificationRequest(identifier: "radio-t-live-start", content: contentStart, trigger: triggerStart)
+        
+        // Планируем оба уведомления
+        UNUserNotificationCenter.current().add(request15min) { error in
             if let error = error {
-                print("Error scheduling notification: \(error)")
+                print("Error scheduling 15min notification: \(error)")
+            }
+        }
+        
+        UNUserNotificationCenter.current().add(requestStart) { error in
+            if let error = error {
+                print("Error scheduling start notification: \(error)")
             }
         }
     }

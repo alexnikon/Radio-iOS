@@ -369,23 +369,35 @@ class AudioPlayerManager: NSObject, ObservableObject, AVPlayerItemMetadataOutput
         // Basic metadata processing
         guard let group = groups.first, let metadata = group.items.first else { return }
         
-        if let title = metadata.value as? String {
-            // Parse "Artist - Title" format
-            let components = title.components(separatedBy: " - ")
-            var trackInfo = TrackInfo()
-            
-            if components.count > 1 {
-                trackInfo.artist = components[0].trimmingCharacters(in: .whitespacesAndNewlines)
-                trackInfo.title = components[1].trimmingCharacters(in: .whitespacesAndNewlines)
-            } else {
-                trackInfo.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Use the new async metadata loading approach
+        Task {
+            do {
+                if let title = try await metadata.load(.stringValue) {
+                    // Parse "Artist - Title" format
+                    let components = title.components(separatedBy: " - ")
+                    
+                    let trackInfo: TrackInfo
+                    if components.count > 1 {
+                        trackInfo = TrackInfo(
+                            title: components[1].trimmingCharacters(in: .whitespacesAndNewlines),
+                            artist: components[0].trimmingCharacters(in: .whitespacesAndNewlines)
+                        )
+                    } else {
+                        trackInfo = TrackInfo(
+                            title: title.trimmingCharacters(in: .whitespacesAndNewlines),
+                            artist: ""
+                        )
+                    }
+                    
+                    await MainActor.run {
+                        self.currentTrackInfo = trackInfo
+                        // Update Now Playing info with new track data
+                        self.setupNowPlaying()
+                    }
+                }
+            } catch {
+                print("Metadata loading error: \(error)")
             }
-            
-            self.currentTrackInfo = trackInfo
-            
-            // Update Now Playing info with new track data
-
-            self.setupNowPlaying()
         }
     }
     
