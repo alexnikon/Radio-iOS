@@ -1,10 +1,3 @@
-//
-//  ContentView.swift
-//  Radio-T
-//
-//  Created by Alex Nikon on 16.03.2025.
-//
-
 import SwiftUI
 
 struct ErrorBanner: View {
@@ -38,9 +31,7 @@ struct ContentView: View {
     @StateObject private var player = AudioPlayerManager()
     @State private var showError = false
     @State private var selectedTab = 0 // 0 for player, 1 for chat, 2 for news
-    // Состояния для анимации эквалайзера
-    @State private var barHeights: [CGFloat] = [0.4, 0.6, 0.5, 0.7, 0.3]
-    @State private var timer: Timer? = nil
+
     
     var body: some View {
         VStack(spacing: 20) {
@@ -74,6 +65,7 @@ struct ContentView: View {
         .onAppear {
             UIApplication.shared.beginReceivingRemoteControlEvents()
         }
+
     }
     
     // Player view
@@ -117,29 +109,6 @@ struct ContentView: View {
                     .padding(.horizontal)
                     .padding(.top, 10)
                     .animation(.easeInOut, value: player.currentTrackInfo)
-                    
-                    // Анимация эквалайзера
-                    HStack(spacing: 4) {
-                        ForEach(0..<5) { i in
-                            Capsule()
-                                .fill(Color.blue)
-                                .frame(width: 3, height: 30 * barHeights[i])
-                                .animation(
-                                    .easeInOut(duration: 0.4),
-                                    value: barHeights[i]
-                                )
-                        }
-                    }
-                    .frame(height: 30)
-                    .padding(.vertical, 10)
-                    .onAppear {
-                        // Запускаем таймер для анимации эквалайзера
-                        startEqualizerAnimation()
-                    }
-                    .onDisappear {
-                        // Останавливаем таймер при исчезновении вида
-                        stopEqualizerAnimation()
-                    }
                 }
             }
             
@@ -158,8 +127,10 @@ struct ContentView: View {
             // Кнопка Play/Stop в фиксированной позиции
             Button(action: {
                 if player.isPlaying {
+                    HapticManager.shared.stopFeedback()
                     player.stop()
                 } else {
+                    HapticManager.shared.playFeedback()
                     player.play()
                 }
             }) {
@@ -184,6 +155,8 @@ struct ContentView: View {
                 if player.currentStream == .radioT {
                     HStack(spacing: 40) {
                         Button(action: { 
+                            // Haptic feedback для кнопки новостей
+                            HapticManager.shared.lightImpact()
                             // Open News in browser
                             if let url = URL(string: "https://news.radio-t.com") {
                                 UIApplication.shared.open(url)
@@ -199,6 +172,8 @@ struct ContentView: View {
                         }
                         
                         Button(action: { 
+                            // Haptic feedback для кнопки чата
+                            HapticManager.shared.lightImpact()
                             // Open Chat in browser
                             if let url = URL(string: "https://t.me/radio_t_chat") {
                                 UIApplication.shared.open(url)
@@ -224,26 +199,7 @@ struct ContentView: View {
         }
     }
     
-    // Функция для запуска анимации эквалайзера
-    private func startEqualizerAnimation() {
-        // Остановим предыдущий таймер, если он был
-        stopEqualizerAnimation()
-        
-        // Запускаем новый таймер, который будет обновлять высоты полос
-        timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
-            // Обновляем высоты всех полос случайными значениями
-            for i in 0..<barHeights.count {
-                // Генерируем случайное значение от 0.2 до 1.0
-                barHeights[i] = CGFloat.random(in: 0.2...1.0)
-            }
-        }
-    }
-    
-    // Функция для остановки анимации эквалайзера
-    private func stopEqualizerAnimation() {
-        timer?.invalidate()
-        timer = nil
-    }
+
     
     // Chat view
     private var chatView: some View {

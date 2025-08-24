@@ -67,6 +67,8 @@ class AudioPlayerManager: NSObject, ObservableObject, AVPlayerItemMetadataOutput
             name: .updateNowPlaying,
             object: nil
         )
+        
+
     }
     
     deinit {
@@ -84,6 +86,9 @@ class AudioPlayerManager: NSObject, ObservableObject, AVPlayerItemMetadataOutput
         
         // Update the current stream selection
         currentStream = streamType
+        
+        // Haptic feedback для переключения потока
+        HapticManager.shared.lightImpact()
         
         // If player exists and is playing, restart with new stream
         if isPlaying {
@@ -123,6 +128,9 @@ class AudioPlayerManager: NSObject, ObservableObject, AVPlayerItemMetadataOutput
         
         // Очищаем информацию о треке
         currentTrackInfo = TrackInfo()
+        
+        // Haptic feedback для остановки
+        HapticManager.shared.stopFeedback()
     }
     
     func play() {
@@ -133,6 +141,11 @@ class AudioPlayerManager: NSObject, ObservableObject, AVPlayerItemMetadataOutput
             return
         }
         
+        // Просто продолжаем воспроизведение - ошибки будут обработаны в setupPlayer
+        continuePlayback()
+    }
+    
+    private func continuePlayback() {
         do {
             // Активируем аудио сессию
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
@@ -148,9 +161,14 @@ class AudioPlayerManager: NSObject, ObservableObject, AVPlayerItemMetadataOutput
             // Обновляем информацию Now Playing и активируем управление воспроизведением
             setupNowPlaying()
             UIApplication.shared.beginReceivingRemoteControlEvents()
+            
+            // Haptic feedback для успешного воспроизведения
+            HapticManager.shared.success()
         } catch {
             print("Failed to activate audio session:", error)
             errorMessage = "Failed to activate audio session"
+            // Haptic feedback для ошибки
+            HapticManager.shared.error()
         }
     }
     
@@ -158,6 +176,11 @@ class AudioPlayerManager: NSObject, ObservableObject, AVPlayerItemMetadataOutput
         isLoading = true
         errorMessage = nil
         
+        // Просто настраиваем плеер - ошибки будут обработаны автоматически
+        setupPlayerWithAsset()
+    }
+    
+    private func setupPlayerWithAsset() {
         let asset = AVURLAsset(url: currentStream.url, options: [
             "AVURLAssetHTTPHeaderFieldsKey": ["User-Agent": "Radio/1.0 (iOS)"]
         ])
@@ -167,8 +190,14 @@ class AudioPlayerManager: NSObject, ObservableObject, AVPlayerItemMetadataOutput
                 let (isPlayable, _) = try await asset.load(.isPlayable, .duration)
                 
                 guard isPlayable else {
-                    throw NSError(domain: "Audio", code: 1,
-                                  userInfo: [NSLocalizedDescriptionKey: "Stream unavailable"])
+                    // Для Radio-T показываем специальное сообщение
+                    if self.currentStream == .radioT {
+                        throw NSError(domain: "Audio", code: 1,
+                                      userInfo: [NSLocalizedDescriptionKey: "Трансляция еще не началась."])
+                    } else {
+                        throw NSError(domain: "Audio", code: 1,
+                                      userInfo: [NSLocalizedDescriptionKey: "Stream unavailable"])
+                    }
                 }
                 
                 let playerItem = AVPlayerItem(asset: asset)
@@ -206,6 +235,8 @@ class AudioPlayerManager: NSObject, ObservableObject, AVPlayerItemMetadataOutput
         setupNowPlaying()
     }
     
+
+    
     override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
         if keyPath == #keyPath(AVPlayerItem.status) {
             if let statusNumber = change?[.newKey] as? NSNumber,
@@ -216,9 +247,19 @@ class AudioPlayerManager: NSObject, ObservableObject, AVPlayerItemMetadataOutput
                     DispatchQueue.main.async { [weak self] in
                         self?.setupNowPlaying()
                         UIApplication.shared.beginReceivingRemoteControlEvents()
+                        
+                        // Haptic feedback для успешной загрузки потока
+                        HapticManager.shared.success()
                     }
                 case .failed:
-                    errorMessage = "Failed to load stream"
+                    // Для Radio-T показываем специальное сообщение
+                    if self.currentStream == .radioT {
+                        errorMessage = "Трансляция еще не началась."
+                        HapticManager.shared.warning()
+                    } else {
+                        errorMessage = "Failed to load stream"
+                        HapticManager.shared.error()
+                    }
                 default:
                     break
                 }
@@ -358,7 +399,15 @@ class AudioPlayerManager: NSObject, ObservableObject, AVPlayerItemMetadataOutput
     
     @MainActor
     private func handleError(_ error: Error) {
-        errorMessage = error.localizedDescription
+        // Для Radio-T показываем специальное сообщение
+        if currentStream == .radioT {
+            errorMessage = "Трансляция еще не началась."
+            HapticManager.shared.warning()
+        } else {
+            errorMessage = error.localizedDescription
+            HapticManager.shared.error()
+        }
+        
         print("Player error: \(error)")
     }
     
@@ -400,6 +449,8 @@ class AudioPlayerManager: NSObject, ObservableObject, AVPlayerItemMetadataOutput
             }
         }
     }
+    
+
     
     // Add a method to fetch Radio-T metadata specifically
     private func fetchRadioTMetadata() {
